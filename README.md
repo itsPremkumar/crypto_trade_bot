@@ -23,5 +23,16 @@ A completely decentralized, low-capital ($10 USD equivalent) crypto trading bot 
    ```
 4. Access the bot safely via your Telegram app using `/start`.
 
+## Contributing
+
+We love contributions! Whether it's reporting a bug, suggesting an enhancement, or submitting a pull request, all contributions are welcome.
+
+- **How to contribute?** Check out our [CONTRIBUTING.md](file:///c:/one/crypto_trade_bot/CONTRIBUTING.md) for guidelines.
+- **Code of Conduct**: Please read our [CODE_OF_CONDUCT.md](file:///c:/one/crypto_trade_bot/CODE_OF_CONDUCT.md) before participating.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](file:///c:/one/crypto_trade_bot/LICENSE) file for details.
+
 ## Disclaimer
 Trading cryptocurrencies carries significant risk. This is experimental software. Never fund the bot with capital you are not prepared to lose.
