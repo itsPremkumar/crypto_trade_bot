@@ -4,7 +4,7 @@ A completely decentralized, low-capital ($10 USD equivalent) crypto trading bot 
 
 ## Core Features
 - **Low Capital Focus**: Designed strictly to grow $10 capital while preserving funds.
-- **LLM Decision Engine**: Every BUY/SELL decision is analyzed and justified by Claude.
+- **Multi-LLM Engine**: Support for **Anthropic Claude** (Cloud) and **Ollama** (Local/Self-hosted) for all decisions.
 - **Strict Risk Checks**: Hardcoded risk guardrails preventing severe losses and slippage.
 - **Telegram Control Center**: 100% manageable through a comprehensive Telegram bot.
 - **Non-Custodial**: Operates securely using the fast `eth_account` keystore locally.
@@ -16,12 +16,18 @@ A completely decentralized, low-capital ($10 USD equivalent) crypto trading bot 
 
 ## Quick Start
 1. Clone the repository.
-2. `cp .env.example .env` and carefully fill in the required API keys and RPC endpoints.
-3. Build and run using Docker Compose:
+2. `cp .env.example .env` and carefully fill in your `ANTHROPIC_API_KEY` and `TELEGRAM_BOT_TOKEN`.
+3. Set a secure `TELEGRAM_PAIRING_CODE` in your `.env`.
+4. Build and run using Docker Compose:
    ```bash
    docker-compose up -d --build
    ```
-4. Access the bot safely via your Telegram app using `/start`.
+   **OR** run manually:
+   ```bash
+   python -m bot.main
+   ```
+5. Open your bot in Telegram and send: `/pair <your_pairing_code>`.
+6. You are nowauthorized! You can use the menu or simply **chat with Claude** for market insights.
 
 ## Contributing
 

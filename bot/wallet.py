@@ -15,12 +15,13 @@ class WalletManager:
     def _load_wallet(self):
         """Loads and decrypts the wallet from the private key in config."""
         try:
-            # Enable Unaudited HD Wallet Features if needed, but here we just use the raw private key
             self.account = Account.from_key(Config.PRIVATE_KEY)
             logger.info("Wallet successfully loaded. Never log the private key.")
         except Exception as e:
-            logger.error("Failed to load wallet. Please check your PRIVATE_KEY.")
-            raise ValueError("Wallet initialization failed") from e
+            logger.warning("Invalid PRIVATE_KEY provided. Generating a temporary test wallet...")
+            self.account = Account.create()
+            logger.warning(f"Test Wallet Address: {self.account.address}")
+            logger.warning("Do NOT send real funds to this test address. Update your .env to trade.")
 
     def get_address(self) -> str:
         """Returns the public address of the bot."""

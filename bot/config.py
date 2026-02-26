@@ -9,11 +9,18 @@ class Config:
     PRIVATE_KEY: str = os.getenv("PRIVATE_KEY", "")
     KEYSTORE_PASSWORD: str = os.getenv("KEYSTORE_PASSWORD", "")
 
+    # LLM Settings
+    LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "claude") # claude, ollama
+    
     # Anthropic LLM
     ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
-    LLM_MODEL: str = os.getenv("LLM_MODEL", "claude-3-5-sonnet-20241022") # fallback mapped since 4-5 doesn't officially exist as keyword yet
+    LLM_MODEL: str = os.getenv("LLM_MODEL", "claude-3-5-sonnet-20241022") 
     LLM_TEMPERATURE: float = float(os.getenv("LLM_TEMPERATURE", "0.2"))
     LLM_MAX_TOKENS: int = int(os.getenv("LLM_MAX_TOKENS", "500"))
+
+    # Ollama (Local LLM)
+    OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "llama3")
 
     # RPC URLs
     POLYGON_RPC_URL: str = os.getenv("POLYGON_RPC_URL", "")
@@ -22,7 +29,8 @@ class Config:
 
     # Telegram
     TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
-    TELEGRAM_CHAT_ID: str = os.getenv("TELEGRAM_CHAT_ID", "")
+    TELEGRAM_CHAT_ID: str = os.getenv("TELEGRAM_CHAT_ID", "") # Optional if using pairing
+    TELEGRAM_PAIRING_CODE: str = os.getenv("TELEGRAM_PAIRING_CODE", "123")
     BOT_MODE: str = os.getenv("BOT_MODE", "manual") # auto, manual, paused
 
     # Risk Parameters
@@ -47,10 +55,14 @@ class Config:
         missing = []
         if not cls.PRIVATE_KEY:
             missing.append("PRIVATE_KEY")
-        if not cls.ANTHROPIC_API_KEY:
-            missing.append("ANTHROPIC_API_KEY")
+        
+        if cls.LLM_PROVIDER == "claude" and not cls.ANTHROPIC_API_KEY:
+            missing.append("ANTHROPIC_API_KEY (required for Claude)")
+        elif cls.LLM_PROVIDER == "ollama" and not cls.OLLAMA_MODEL:
+            missing.append("OLLAMA_MODEL (required for Ollama)")
+            
         if not cls.TELEGRAM_BOT_TOKEN:
             missing.append("TELEGRAM_BOT_TOKEN")
         
         if missing:
-            raise ValueError(f"Missing critical complete configuration variables: {', '.join(missing)}")
+            raise ValueError(f"Missing critical configuration variables: {', '.join(missing)}")

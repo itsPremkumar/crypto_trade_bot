@@ -9,6 +9,7 @@ from bot.chain_manager import ChainManager
 from bot.data.price_feed import PriceFeed
 from bot.data.market_analyzer import MarketAnalyzer
 from bot.llm.claude_brain import ClaudeBrain
+from bot.llm.ollama_brain import OllamaBrain
 from bot.llm.context_builder import ContextBuilder
 from bot.execution.gas_optimizer import GasOptimizer
 from bot.execution.trade_executor import TradeExecutor
@@ -39,14 +40,19 @@ class CryptoBot:
         self.price_feed = PriceFeed()
         self.analyzer = MarketAnalyzer(self.price_feed)
         
-        self.claude = ClaudeBrain()
+        # Dynamic LLM Provider Selection
+        if Config.LLM_PROVIDER == "ollama":
+            self.brain = OllamaBrain()
+        else:
+            self.brain = ClaudeBrain()
+            
         self.context_builder = ContextBuilder(self.db, self.wallet, self.analyzer)
         
         self.gas_optimizer = GasOptimizer(self.chains.get_all_w3())
         self.executor = TradeExecutor(self.wallet, self.chains, self.gas_optimizer)
         self.risk_manager = RiskManager(self.gas_optimizer, self.db)
         
-        self.telegram = BotController(self.db)
+        self.telegram = BotController(self.db, self.brain)
         
         self.scheduler = AsyncIOScheduler()
         self.is_running = False
@@ -74,8 +80,8 @@ class CryptoBot:
         # 3. Build Full Context
         context = await self.context_builder.build(portfolio_balance, available_balance, open_positions, gas_costs)
         
-        # 4. Ask Claude
-        decision = await self.claude.analyze_market(context)
+        # 4. Ask Brain
+        decision = await self.brain.analyze_market(context)
         
         # Save decision
         llm_dec = LLMDecision(

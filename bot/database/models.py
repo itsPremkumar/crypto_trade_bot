@@ -39,6 +39,9 @@ class BotState(Base):
     __tablename__ = 'bot_state'
     id = Column(Integer, primary_key=True)
     mode = Column(String(20), default="manual") # auto, manual, paused
+    admin_chat_id = Column(String(50), nullable=True) # Authorized user
+    pairing_code = Column(String(10), nullable=True) # Code for pairing
+    is_paired = Column(Boolean, default=False)
     circuit_breaker_active = Column(Boolean, default=False)
     consecutive_losses = Column(Integer, default=0)
     daily_pnl_usd = Column(Float, default=0.0)

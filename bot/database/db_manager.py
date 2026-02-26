@@ -1,5 +1,6 @@
 import logging
 import json
+import os
 from datetime import datetime, timedelta
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
@@ -24,10 +25,16 @@ class DBManager:
         with self.get_session() as session:
             state = session.query(BotState).first()
             if not state:
-                state = BotState(mode=Config.BOT_MODE)
+                # Get pairing code from environment if provided, else None
+                pairing_code = os.getenv("TELEGRAM_PAIRING_CODE")
+                state = BotState(
+                    mode=Config.BOT_MODE,
+                    pairing_code=pairing_code,
+                    is_paired=False
+                )
                 session.add(state)
                 session.commit()
-                logger.info("Initialized default BotState in DB.")
+                logger.info(f"Initialized BotState in DB. Pairing Code: {pairing_code}")
 
     def get_bot_state(self) -> BotState:
         with self.get_session() as session:
