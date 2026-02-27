@@ -18,7 +18,7 @@ class MessageFormatter:
         todays_pnl = f"${state.daily_pnl_usd:.2f}"
         
         mode = escape_md(state.mode.upper())
-        cb = "🟢 SAFE" if not state.circuit_breaker_active else "🔴 ACTIVE"
+        cb = escape_md("🟢 SAFE" if not state.circuit_breaker_active else "🔴 ACTIVE")
         
         status = f"""📊 *PORTFOLIO STATUS*
         
@@ -89,11 +89,15 @@ _{escape_md(decision.reason)}_
 
     @staticmethod
     def format_daily_report(stats: Dict[str, Any]) -> str:
+        pnl = f"${stats.get('daily_pnl', 0.0):.2f}"
+        win_rate = f"{stats.get('win_rate', 0.0):.1f}%"
+        gas = f"${stats.get('gas_spent', 0.0):.3f}"
+        
         msg = f"""📝 *DAILY PERFORMANCE REPORT*
         
-*Total PnL Today:* {escape_md(f"${stats.get('daily_pnl', 0.0):.2f}")}
+*Total PnL Today:* {escape_md(pnl)}
 *Trades Executed:* {stats.get('trade_count', 0)}
-*Win Rate:* {stats.get('win_rate', 0.0):.1f}%
-*Gas Spent:* {escape_md(f"${stats.get('gas_spent', 0.0):.3f}")}
+*Win Rate:* {escape_md(win_rate)}
+*Gas Spent:* {escape_md(gas)}
 """
         return msg

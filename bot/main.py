@@ -5,6 +5,7 @@ from bot.config import Config
 from bot.database.db_manager import DBManager
 from bot.database.models import Trade, LLMDecision
 from bot.wallet import WalletManager
+from bot.solana_manager import SolanaManager
 from bot.chain_manager import ChainManager
 from bot.data.price_feed import PriceFeed
 from bot.data.market_analyzer import MarketAnalyzer
@@ -13,9 +14,10 @@ from bot.llm.ollama_brain import OllamaBrain
 from bot.llm.context_builder import ContextBuilder
 from bot.execution.gas_optimizer import GasOptimizer
 from bot.execution.trade_executor import TradeExecutor
+from bot.execution.solana_executor import SolanaExecutor
 from bot.risk.risk_manager import RiskManager
-from bot.telegram.bot_controller import BotController
-from bot.telegram.message_formatter import MessageFormatter
+from bot.tg_handler.bot_controller import BotController
+from bot.tg_handler.message_formatter import MessageFormatter
 
 # Logging setup
 logging.basicConfig(
@@ -35,18 +37,24 @@ class CryptoBot:
         
         self.db = DBManager()
         self.wallet = WalletManager()
+        self.solana = SolanaManager()
         self.chains = ChainManager()
         
         self.price_feed = PriceFeed()
         self.analyzer = MarketAnalyzer(self.price_feed)
         
-        # Dynamic LLM Provider Selection
-        if Config.LLM_PROVIDER == "ollama":
-            self.brain = OllamaBrain()
+        # Dynamic LLM Provider Selection with Fallback
+        if Config.LLM_PROVIDER == "claude":
+            if Config.ANTHROPIC_API_KEY and Config.ANTHROPIC_API_KEY != "your_anthropic_api_key_here":
+                self.brain = ClaudeBrain()
+            else:
+                logger.warning("ANTHROPIC_API_KEY missing or placeholder. Automatically falling back to local Ollama...")
+                self.brain = OllamaBrain()
         else:
-            self.brain = ClaudeBrain()
+            self.brain = OllamaBrain()
             
-        self.context_builder = ContextBuilder(self.db, self.wallet, self.analyzer)
+        self.solana_executor = SolanaExecutor(self.solana)
+        self.context_builder = ContextBuilder(self.db, self.wallet, self.analyzer, self.solana)
         
         self.gas_optimizer = GasOptimizer(self.chains.get_all_w3())
         self.executor = TradeExecutor(self.wallet, self.chains, self.gas_optimizer)
@@ -125,6 +133,18 @@ class CryptoBot:
             
             result = await self.executor.execute(decision, amount_in_wei, min_out_wei)
             
+            # Solana Execution Branch
+            if decision.chain == "solana":
+                sol_quote = await self.solana_executor.get_quote(
+                    "So11111111111111111111111111111111111111112", # WSOL/SOL
+                    "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", # USDC
+                    int(decision.amount_usd * 1e9 / 100) # Mock conversion
+                )
+                if sol_quote:
+                    result = await self.solana_executor.execute_swap(sol_quote)
+            else:
+                result = await self.executor.execute(decision, amount_in_wei, min_out_wei)
+            
             llm_dec.was_executed = result.success
             llm_dec.outcome = result.tx_hash if result.success else result.error
             self.db.log_llm_decision(llm_dec) # update
@@ -181,6 +201,8 @@ class CryptoBot:
         self.is_running = False
         self.scheduler.shutdown()
         await self.price_feed.close()
+        await self.solana.close()
+        await self.solana_executor.close()
         await self.telegram.app.updater.stop()
         await self.telegram.app.stop()
         await self.telegram.app.shutdown()

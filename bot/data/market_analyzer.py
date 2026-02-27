@@ -14,7 +14,7 @@ class MarketAnalyzer:
 
     def __init__(self, price_feed: PriceFeed):
         self.price_feed = price_feed
-        self.target_pairs = ["MATIC/USDC", "BNB/USDC", "ETH/USDC"]
+        self.target_pairs = ["MATIC/USDC", "BNB/USDC", "ETH/USDC", "SOL/USDC"]
 
     async def analyze_all_markets(self) -> Dict[str, Dict[str, Any]]:
         """

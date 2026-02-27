@@ -4,13 +4,23 @@ from typing import Dict, Any, List
 class ContextBuilder:
     """Builds the comprehensive JSON market context representation sent to Claude."""
     
-    def __init__(self, db_manager, wallet_manager, market_analyzer):
+    def __init__(self, db_manager, wallet_manager, market_analyzer, solana_manager=None):
         self.db_manager = db_manager
         self.wallet = wallet_manager
         self.analyzer = market_analyzer
+        self.solana = solana_manager
 
     async def build(self, portfolio_balance: float, available_balance: float, open_positions: List[Dict], gas_costs: Dict[str, Any]) -> Dict[str, Any]:
         """Assembles the state dictionary."""
+        # Inject Solana balance if manager is present
+        sol_balance_usd = 0.0
+        if self.solana:
+            sol_qty = await self.solana.get_balance()
+            market_data_temp = await self.analyzer.analyze_all_markets() # We need prices
+            sol_price = market_data_temp.get("SOL/USDC", {}).get("price", 0.0)
+            sol_balance_usd = sol_qty * sol_price
+            portfolio_balance += sol_balance_usd
+            available_balance += sol_balance_usd # Simplified for demo
         
         # Get market data from analyzer
         market_data = await self.analyzer.analyze_all_markets()

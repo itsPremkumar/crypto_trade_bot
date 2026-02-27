@@ -2,8 +2,8 @@ import logging
 from telegram import Update
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, ContextTypes, filters
 from bot.config import Config
-from bot.telegram.message_formatter import MessageFormatter, escape_md
-from bot.telegram.keyboards import Keyboards
+from bot.tg_handler.message_formatter import MessageFormatter, escape_md
+from bot.tg_handler.keyboards import Keyboards
 
 logger = logging.getLogger(__name__)
 

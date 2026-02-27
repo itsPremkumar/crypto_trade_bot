@@ -7,6 +7,7 @@ load_dotenv()
 class Config:
     # Wallet Security
     PRIVATE_KEY: str = os.getenv("PRIVATE_KEY", "")
+    SOLANA_PRIVATE_KEY: str = os.getenv("SOLANA_PRIVATE_KEY", "")
     KEYSTORE_PASSWORD: str = os.getenv("KEYSTORE_PASSWORD", "")
 
     # LLM Settings
@@ -26,6 +27,7 @@ class Config:
     POLYGON_RPC_URL: str = os.getenv("POLYGON_RPC_URL", "")
     BSC_RPC_URL: str = os.getenv("BSC_RPC_URL", "")
     BASE_RPC_URL: str = os.getenv("BASE_RPC_URL", "")
+    SOLANA_RPC_URL: str = os.getenv("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com")
 
     # Telegram
     TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
@@ -53,14 +55,11 @@ class Config:
     def validate(cls):
         """Validate critical configuration fields."""
         missing = []
-        if not cls.PRIVATE_KEY:
-            missing.append("PRIVATE_KEY")
+        if not cls.PRIVATE_KEY and not cls.SOLANA_PRIVATE_KEY:
+            missing.append("PRIVATE_KEY or SOLANA_PRIVATE_KEY")
         
-        if cls.LLM_PROVIDER == "claude" and not cls.ANTHROPIC_API_KEY:
-            missing.append("ANTHROPIC_API_KEY (required for Claude)")
-        elif cls.LLM_PROVIDER == "ollama" and not cls.OLLAMA_MODEL:
-            missing.append("OLLAMA_MODEL (required for Ollama)")
-            
+        # LLM validation is now handled during bot initialization to allow fallback
+        
         if not cls.TELEGRAM_BOT_TOKEN:
             missing.append("TELEGRAM_BOT_TOKEN")
         
