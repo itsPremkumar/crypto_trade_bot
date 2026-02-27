@@ -4,15 +4,18 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Mess
 from bot.config import Config
 from bot.tg_handler.message_formatter import MessageFormatter, escape_md
 from bot.tg_handler.keyboards import Keyboards
+from typing import Any
+from bot.database.db_manager import DBManager
 
 logger = logging.getLogger(__name__)
 
 class BotController:
     """Main Telegram bot interface managing commands, pairing, and LLM chat."""
     
-    def __init__(self, db_manager, brain):
-        self.db = db_manager
+    def __init__(self, db: DBManager, brain: Any, price_feed: Any = None):
+        self.db = db
         self.brain = brain
+        self.price_feed = price_feed
         self.app = Application.builder().token(Config.TELEGRAM_BOT_TOKEN).build()
         self._setup_handlers()
         
@@ -79,13 +82,27 @@ class BotController:
             await update.message.reply_text(escape_md("❌ Invalid pairing code. Check your console or environment variables."), parse_mode='MarkdownV2')
 
     async def handle_chat(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Processes user messages using ClaudeBrain."""
+        """Processes user messages using ClaudeBrain or OllamaBrain with live price context."""
         if not await self._require_auth(update): return
         
         user_text = update.message.text
         await update.message.reply_chat_action("typing")
         
-        response = await self.brain.chat(user_text)
+        price_context = ""
+        if self.price_feed:
+            try:
+                coins = ["BTC/USDT", "ETH/USDT", "SOL/USDT"]
+                stats = []
+                for coin in coins:
+                    data = await self.price_feed.fetch_current_price_24h_stats(coin)
+                    if data and "price" in data:
+                        stats.append(f"{coin}: ${data['price']:.2f} ({data.get('change_24h_pct', 0.0):.2f}%)")
+                if stats:
+                    price_context = "\n".join(stats)
+            except Exception as e:
+                logger.error(f"Failed to fetch live prices for chat: {e}")
+        
+        response = await self.brain.chat(user_text, price_context)
         await update.message.reply_text(escape_md(response), parse_mode='MarkdownV2')
 
     async def cmd_status(self, update: Update, context: ContextTypes.DEFAULT_TYPE):

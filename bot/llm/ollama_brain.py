@@ -53,11 +53,15 @@ class OllamaBrain:
             logger.error(f"Ollama API call failed: {e}")
             return DecisionParser.fallback(raw="", reason=f"Ollama Error: {str(e)}")
 
-    async def chat(self, message: str) -> str:
+    async def chat(self, message: str, price_context: str = "") -> str:
         """Handles general chat messages from the user using local Ollama."""
+        system_prompt = "You are a helpful crypto trading assistant. Acknowledge that you are the local brain (Ollama) of this trading bot. Keep responses concise and helpful."
+        if price_context:
+            system_prompt += f"\n\nCURRENT MARKET PRICES:\n{price_context}"
+            
         payload = {
             "model": self.model,
-            "prompt": f"You are a helpful crypto trading assistant. Acknowledge that you are the local brain (Ollama) of this trading bot. Keep responses concise and helpful.\n\nUser: {message}",
+            "prompt": f"{system_prompt}\n\nUser: {message}",
             "stream": False,
             "options": {
                 "temperature": 0.7

@@ -44,15 +44,19 @@ class ClaudeBrain:
         except Exception as e:
             logger.error(f"Anthropic API call failed: {e}")
             return DecisionParser.fallback(raw="", reason=f"API Error: {str(e)}")
-    async def chat(self, message: str) -> str:
+    async def chat(self, message: str, price_context: str = "") -> str:
         """Handles general chat messages from the user."""
         try:
             logger.info(f"Querying {self.model} for chat response...")
+            system_prompt = "You are a helpful crypto trading assistant. Acknowledge that you are the brain of this trading bot. Keep responses concise and helpful."
+            if price_context:
+                system_prompt += f"\n\nCURRENT MARKET PRICES:\n{price_context}"
+                
             response = await self.client.messages.create(
                 model=self.model,
                 max_tokens=self.max_tokens,
                 temperature=self.temperature,
-                system="You are a helpful crypto trading assistant. Acknowledge that you are the brain of this trading bot. Keep responses concise and helpful.",
+                system=system_prompt,
                 messages=[
                     {"role": "user", "content": message}
                 ]

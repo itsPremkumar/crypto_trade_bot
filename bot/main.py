@@ -60,7 +60,7 @@ class CryptoBot:
         self.executor = TradeExecutor(self.wallet, self.chains, self.gas_optimizer)
         self.risk_manager = RiskManager(self.gas_optimizer, self.db)
         
-        self.telegram = BotController(self.db, self.brain)
+        self.telegram = BotController(self.db, self.brain, self.price_feed)
         
         self.scheduler = AsyncIOScheduler()
         self.is_running = False
