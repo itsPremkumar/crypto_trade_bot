@@ -7,7 +7,11 @@ def escape_md(text: str) -> str:
     if not text:
         return ""
     escape_chars = r'_*[]()~`>#+-=|{}.!'
-    return "".join(f"\\{char}" if char in escape_chars else char for char in str(text))
+    # Escape backslashes first, then other characters
+    res = text.replace('\\', '\\\\')
+    for char in escape_chars:
+        res = res.replace(char, f'\\{char}')
+    return res
 
 class MessageFormatter:
     

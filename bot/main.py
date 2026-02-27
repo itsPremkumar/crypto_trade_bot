@@ -17,7 +17,7 @@ from bot.execution.trade_executor import TradeExecutor
 from bot.execution.solana_executor import SolanaExecutor
 from bot.risk.risk_manager import RiskManager
 from bot.tg_handler.bot_controller import BotController
-from bot.tg_handler.message_formatter import MessageFormatter
+from bot.tg_handler.message_formatter import MessageFormatter, escape_md
 
 # Logging setup
 logging.basicConfig(
@@ -188,7 +188,7 @@ class CryptoBot:
         self.scheduler.start()
         self.is_running = True
         
-        await self.telegram.send_message("🟢 Bot online and scheduler started.")
+        await self.telegram.send_message(escape_md("🟢 Bot online and scheduler started."))
         
         try:
             while self.is_running:

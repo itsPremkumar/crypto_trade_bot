@@ -37,12 +37,12 @@ class BotController:
         
         if not state.is_paired:
             if update.message and "/pair" not in update.message.text:
-                msg = "⚠️ *Bot not paired\\.*\n\nPlease use `/pair <code>` to authorize this chat\\."
+                msg = f"⚠️ {escape_md('*Bot not paired.*')}\n\nPlease use {escape_md('/pair <code>')} to authorize this chat."
                 await update.effective_message.reply_text(msg, parse_mode='MarkdownV2')
             return False
             
         if chat_id != state.admin_chat_id:
-            await update.effective_message.reply_text("⛔ *Unauthorized\\.* Only the paired admin can use this bot\\.", parse_mode='MarkdownV2')
+            await update.effective_message.reply_text(escape_md("⛔ Unauthorized. Only the paired admin can use this bot."), parse_mode='MarkdownV2')
             return False
             
         return True
@@ -50,13 +50,13 @@ class BotController:
     async def cmd_start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         state = self.db.get_bot_state()
         if not state.is_paired:
-            msg = "👋 *Welcome to Crypto Bot\\!*\n\nThis bot is currently *UNPAIRED*\\. To begin, please send:\n`/pair <your_pairing_code>`"
+            msg = f"👋 {escape_md('*Welcome to Crypto Bot!*')}\n\nThis bot is currently {escape_md('*UNPAIRED*')}. To begin, please send:\n{escape_md('/pair <your_pairing_code>')}"
             await update.message.reply_text(msg, parse_mode='MarkdownV2')
             return
 
         if not await self._require_auth(update): return
         
-        msg = f"🚀 *Crypto Bot Active*\n\nCurrent Mode: `{escape_md(state.mode.upper())}`\nUse the menu below to navigate\\."
+        msg = f"🚀 {escape_md('*Crypto Bot Active*')}\n\nCurrent Mode: `{escape_md(state.mode.upper())}`\nUse the menu below to navigate."
         await update.message.reply_text(msg, reply_markup=Keyboards.main_menu_keyboard(), parse_mode='MarkdownV2')
 
     async def cmd_pair(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -73,10 +73,10 @@ class BotController:
         if provided_code == state.pairing_code:
             chat_id = str(update.effective_chat.id)
             self.db.update_bot_state(admin_chat_id=chat_id, is_paired=True)
-            await update.message.reply_text("✨ *Pairing Successful\\!*\n\nYou are now the authorized admin of this bot\\.", parse_mode='MarkdownV2')
+            await update.message.reply_text(escape_md("✨ Pairing Successful!\n\nYou are now the authorized admin of this bot."), parse_mode='MarkdownV2')
             await self.cmd_start(update, context)
         else:
-            await update.message.reply_text("❌ *Invalid pairing code\\.* Check your console or environment variables\\.", parse_mode='MarkdownV2')
+            await update.message.reply_text(escape_md("❌ Invalid pairing code. Check your console or environment variables."), parse_mode='MarkdownV2')
 
     async def handle_chat(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Processes user messages using ClaudeBrain."""
@@ -111,22 +111,22 @@ class BotController:
     async def cmd_stop(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await self._require_auth(update): return
         await update.message.reply_text(
-            "🛑 *WARNING\\:* Emergency stop will pause all trading\\. Proceed?",
+            escape_md("🛑 WARNING: Emergency stop will pause all trading. Proceed?"),
             reply_markup=Keyboards.confirm_stop_keyboard(),
             parse_mode='MarkdownV2'
         )
 
     async def cmd_help(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await self._require_auth(update): return
-        help_txt = """
-*Bot Commands\\:*
-/start \- Main menu
-/status \- Portfolio status
-/setmode \- Change bot mode
-/stop \- Emergency stop
-/pair \- Authorization \(if not paired\)
+        help_txt = f"""
+{escape_md('*Bot Commands:*')}
+{escape_md('/start - Main menu')}
+{escape_md('/status - Portfolio status')}
+{escape_md('/setmode - Change bot mode')}
+{escape_md('/stop - Emergency stop')}
+{escape_md('/pair - Authorization (if not paired)')}
 
-_Simply type any message to chat with Claude for market insights\\!_
+{escape_md('_Simply type any message to chat with AI for market insights!_')}
 """
         await update.message.reply_text(help_txt, parse_mode='MarkdownV2')
 
