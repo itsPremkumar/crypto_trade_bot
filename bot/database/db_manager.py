@@ -4,7 +4,7 @@ import os
 from datetime import datetime, timedelta
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
-from bot.database.models import Base, Trade, LLMDecision, BotState, PortfolioSnapshot
+from bot.database.models import Base, Trade, LLMDecision, BotState, PortfolioSnapshot, PaperWallet
 from bot.config import Config
 
 logger = logging.getLogger(__name__)
@@ -35,6 +35,17 @@ class DBManager:
                 session.add(state)
                 session.commit()
                 logger.info(f"Initialized BotState in DB. Pairing Code: {pairing_code}")
+                
+            paper_wallet = session.query(PaperWallet).filter_by(chain='global', token='USD').first()
+            if not paper_wallet:
+                initial_paper = PaperWallet(
+                    chain='global',
+                    token='USD',
+                    balance=Config.PAPER_START_BALANCE_USD
+                )
+                session.add(initial_paper)
+                session.commit()
+                logger.info(f"Initialized PaperWallet starting balance: ${Config.PAPER_START_BALANCE_USD}")
 
     def get_bot_state(self) -> BotState:
         with self.get_session() as session:
@@ -76,4 +87,22 @@ class DBManager:
                 positions_json=json.dumps(positions)
             )
             session.add(snap)
+            session.commit()
+
+    def get_paper_balance(self, chain: str, token: str) -> float:
+        with self.get_session() as session:
+            wallet = session.query(PaperWallet).filter_by(chain=chain, token=token).first()
+            if wallet:
+                return wallet.balance
+            return 0.0
+
+    def update_paper_balance(self, chain: str, token: str, amount: float):
+        # amount can be positive or negative
+        with self.get_session() as session:
+            wallet = session.query(PaperWallet).filter_by(chain=chain, token=token).first()
+            if not wallet:
+                wallet = PaperWallet(chain=chain, token=token, balance=0.0)
+                session.add(wallet)
+            
+            wallet.balance += amount
             session.commit()

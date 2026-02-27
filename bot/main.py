@@ -15,6 +15,7 @@ from bot.llm.context_builder import ContextBuilder
 from bot.execution.gas_optimizer import GasOptimizer
 from bot.execution.trade_executor import TradeExecutor
 from bot.execution.solana_executor import SolanaExecutor
+from bot.execution.paper_executor import PaperExecutor
 from bot.risk.risk_manager import RiskManager
 from bot.tg_handler.bot_controller import BotController
 from bot.tg_handler.message_formatter import MessageFormatter, escape_md
@@ -54,6 +55,7 @@ class CryptoBot:
             self.brain = OllamaBrain()
             
         self.solana_executor = SolanaExecutor(self.solana)
+        self.paper_executor = PaperExecutor(self.db, self.analyzer)
         self.context_builder = ContextBuilder(self.db, self.wallet, self.analyzer, self.solana)
         
         self.gas_optimizer = GasOptimizer(self.chains.get_all_w3())
@@ -119,29 +121,76 @@ class CryptoBot:
         # 6. Execution Flow
         if state.mode == "manual":
             # Send approval request to Telegram
-            msg = MessageFormatter.format_llm_decision(decision, True)
+            is_paper_mode = (Config.TRADING_MODE == "paper")
+            msg = MessageFormatter.format_llm_decision(decision, True, is_paper=is_paper_mode)
             await self.telegram.send_message(msg)
             logger.info("Sent manual approval request to Telegram.")
             # We wait for callback to execute...
             return
             
         elif state.mode == "auto":
-            logger.info("Auto-executing trade...")
+            if Config.TRADING_MODE == "paper":
+                logger.info("Executing [PAPER TRADE]...")
+                result = await self.paper_executor.execute(decision)
+                llm_dec.was_executed = result.success
+                llm_dec.outcome = result.tx_hash if result.success else result.error
+                self.db.log_llm_decision(llm_dec)
+                
+                trade = Trade(
+                    action=decision.action,
+                    token_in=decision.token_in,
+                    token_out=decision.token_out,
+                    amount_usd=decision.amount_usd,
+                    chain=decision.chain,
+                    tx_hash=result.tx_hash or "failed",
+                    status="closed" if result.success else "failed",
+                    is_paper=True
+                )
+                self.db.log_trade(trade)
+                
+                if result.success:
+                    msg = MessageFormatter.format_trade_executed(decision, result.tx_hash, is_paper=True)
+                    await self.telegram.send_message(msg)
+                else:
+                    msg = f"❌ *[PAPER TRADE]* Execution Failed\!\n\nReason: {escape_md(result.error)}"
+                    await self.telegram.send_message(msg)
+                
+                return
+
+            logger.info("Auto-executing live trade...")
             # Using placeholder WEI amounts for demonstration. A robust build calculates this from amount_usd and oracle price.
             amount_in_wei = int(decision.amount_usd * 1e18) 
             min_out_wei = int(amount_in_wei * 0.95)
             
-            result = await self.executor.execute(decision, amount_in_wei, min_out_wei)
-            
             # Solana Execution Branch
             if decision.chain == "solana":
+                # Token Mints
+                USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+                WSOL_MINT = "So11111111111111111111111111111111111111112"
+                
+                input_mint = USDC_MINT if decision.token_in == "USDC" else WSOL_MINT
+                output_mint = WSOL_MINT if decision.token_out == "SOL" else USDC_MINT
+                
+                if decision.token_in == "USDC":
+                    # USDC has 6 decimals
+                    amount_in_lamports = int(decision.amount_usd * 1e6)
+                else: # SOL
+                    market_dict = await self.analyzer.analyze_all_markets()
+                    sol_price = market_dict.get("SOL/USDC", {}).get("price", 0.0)
+                    if sol_price <= 0: sol_price = 150.0  # Fallback just in case
+                    # SOL has 9 decimals
+                    amount_in_lamports = int((decision.amount_usd / sol_price) * 1e9)
+
                 sol_quote = await self.solana_executor.get_quote(
-                    "So11111111111111111111111111111111111111112", # WSOL/SOL
-                    "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", # USDC
-                    int(decision.amount_usd * 1e9 / 100) # Mock conversion
+                    input_mint,
+                    output_mint,
+                    amount_in_lamports
                 )
+                
                 if sol_quote:
                     result = await self.solana_executor.execute_swap(sol_quote)
+                else:
+                    result = TradeResult(False, error="Failed to get Solana quote")
             else:
                 result = await self.executor.execute(decision, amount_in_wei, min_out_wei)
             

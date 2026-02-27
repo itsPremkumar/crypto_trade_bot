@@ -10,3 +10,4 @@ services:
     volumes:
       - ./data:/app/data
       - ./trades.db:/app/trades.db
+      - ./bot.log:/app/bot.log

@@ -1,6 +1,7 @@
 import logging
 import aiohttp
 import base64
+import datetime
 from typing import Optional, NamedTuple
 from solana.rpc.async_api import AsyncClient
 from solders.transaction import VersionedTransaction
@@ -31,6 +32,10 @@ class SolanaExecutor:
             "amount": amount,
             "slippageBps": slippage_bps
         }
+        if "devnet" in str(self.solana.client._provider.endpoint_uri):
+            logger.info("Devnet detected: Returning mock quote.")
+            return {"mock": True, "inputMint": input_mint, "outputMint": output_mint, "amount": amount}
+            
         async with self.session.get(self.JUPITER_QUOTE_API, params=params) as response:
             if response.status != 200:
                 error_text = await response.text()
@@ -41,6 +46,11 @@ class SolanaExecutor:
     async def execute_swap(self, quote_response: dict) -> TradeResult:
         """Execute a swap using a Jupiter quote."""
         try:
+            if quote_response.get("mock"):
+                tx_hash = "MOCK_TX_DEVNET_SUCCESS_" + base64.b64encode(str(datetime.datetime.now().timestamp()).encode()).decode()[:10]
+                logger.info(f"Solana Trade Mock Executed: {tx_hash}")
+                return TradeResult(True, tx_hash=tx_hash)
+
             # 1. Get swap transaction from Jupiter
             payload = {
                 "quoteResponse": quote_response,

@@ -37,13 +37,14 @@ class MessageFormatter:
         return status
 
     @staticmethod
-    def format_llm_decision(decision: TradeDecision, is_manual_request: bool = False) -> str:
+    def format_llm_decision(decision: TradeDecision, is_manual_request: bool = False, is_paper: bool = False) -> str:
         conf = f"{decision.confidence * 100:.1f}%"
         amt = f"${decision.amount_usd:.2f}"
         
         emoji = "🤖" if decision.action == "HOLD" else ("🟢" if decision.action == "BUY" else "🔴")
+        paper_tag = "[PAPER] " if is_paper else ""
         
-        msg = f"""{emoji} *CLAUDE RECOMMENDS:* {escape_md(decision.action)}
+        msg = f"""{emoji} *{escape_md(paper_tag)}CLAUDE RECOMMENDS:* {escape_md(decision.action)}
 
 *Token:* {escape_md(decision.token_in)} \-\> {escape_md(decision.token_out)}
 *Amount:* {escape_md(amt)}
@@ -56,9 +57,10 @@ _{escape_md(decision.reason)}_
         return msg
 
     @staticmethod
-    def format_trade_executed(decision: TradeDecision, tx_hash: str) -> str:
+    def format_trade_executed(decision: TradeDecision, tx_hash: str, is_paper: bool = False) -> str:
         amt = f"${decision.amount_usd:.2f}"
-        msg = f"""🟢 *TRADE EXECUTED*
+        paper_tag = "[PAPER] " if is_paper else ""
+        msg = f"""🟢 *{escape_md(paper_tag)}TRADE EXECUTED*
         
 *Action:* {escape_md(decision.action)} {escape_md(decision.token_out)}
 *Amount:* {escape_md(amt)}

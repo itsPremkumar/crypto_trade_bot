@@ -19,6 +19,7 @@ class Trade(Base):
     pnl_usd = Column(Float, default=0.0)
     pnl_pct = Column(Float, default=0.0)
     gas_cost_usd = Column(Float, default=0.0)
+    is_paper = Column(Boolean, default=False)
     closed_at = Column(DateTime, nullable=True)
 
 class LLMDecision(Base):
@@ -54,3 +55,11 @@ class PortfolioSnapshot(Base):
     total_usd = Column(Float)
     available_usd = Column(Float)
     positions_json = Column(String) # Serialized JSON array of open positions
+
+class PaperWallet(Base):
+    __tablename__ = 'paper_wallet'
+    id = Column(Integer, primary_key=True)
+    chain = Column(String(20)) # e.g., 'global', 'solana', 'polygon'
+    token = Column(String(50)) # 'USD', 'SOL', 'MATIC'
+    balance = Column(Float, default=0.0)
+    last_updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

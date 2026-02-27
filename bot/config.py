@@ -33,9 +33,13 @@ class Config:
     TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
     TELEGRAM_CHAT_ID: str = os.getenv("TELEGRAM_CHAT_ID", "") # Optional if using pairing
     TELEGRAM_PAIRING_CODE: str = os.getenv("TELEGRAM_PAIRING_CODE", "123")
-    BOT_MODE: str = os.getenv("BOT_MODE", "manual") # auto, manual, paused
 
-    # Risk Parameters
+    # Operational Modes
+    BOT_MODE: str = os.getenv("BOT_MODE", "manual").lower()  # 'manual' or 'auto'
+    TRADING_MODE: str = os.getenv("TRADING_MODE", "paper").lower() # 'paper' or 'live'
+    PAPER_START_BALANCE_USD: float = float(os.getenv("PAPER_START_BALANCE_USD", "10.00"))
+
+    # Operational Settings
     MIN_BALANCE_USD: float = float(os.getenv("MIN_BALANCE_USD", "7.00"))
     MIN_TRADE_USD: float = float(os.getenv("MIN_TRADE_USD", "1.00"))
     MAX_DAILY_LOSS_PERCENT: float = float(os.getenv("MAX_DAILY_LOSS_PERCENT", "5.0"))
@@ -57,6 +61,11 @@ class Config:
         missing = []
         if not cls.PRIVATE_KEY and not cls.SOLANA_PRIVATE_KEY:
             missing.append("PRIVATE_KEY or SOLANA_PRIVATE_KEY")
+        
+        if cls.TRADING_MODE not in ["paper", "live"]:
+            raise ValueError("TRADING_MODE must be 'paper' or 'live'")
+        if cls.TRADING_MODE == "live" and not cls.PRIVATE_KEY and not cls.SOLANA_PRIVATE_KEY:
+            raise ValueError("In 'live' mode, PRIVATE_KEY or SOLANA_PRIVATE_KEY must be provided")
         
         # LLM validation is now handled during bot initialization to allow fallback
         
